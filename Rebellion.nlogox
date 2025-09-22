@@ -7,6 +7,7 @@ globals [
   k                   ; factor for determining arrest probability
   threshold           ; by how much must G > N to make someone rebel?
   government-legitimacy ; in our extension, it will change overtime based on the cop behavior
+  max-government-legitimacy
   alpha-arrest
   beta-arrest
   N-arb ; number of arbitrary arrests
@@ -39,7 +40,8 @@ to setup
   ; set globals
   set k 2.3
   set threshold 0.1
-  set government-legitimacy 0.7
+  set government-legitimacy 0.82
+  set max-government-legitimacy government-legitimacy
   set N-arb-total 0
   set N-fair-total 0
   set alpha-arrest 0.005
@@ -132,7 +134,7 @@ end
 ; AGENT BEHAVIOR
 
 to determine-behavior
-  set active? (grievance - risk-aversion * estimated-arrest-probability + estimated-arrest-probability-when-quiet > threshold)
+  set active? ((grievance - risk-aversion * estimated-arrest-probability + estimated-arrest-probability-when-quiet) > threshold)
 end
 
 to-report grievance
@@ -143,7 +145,7 @@ to-report estimated-arrest-probability
   let c count cops-on neighborhood
   let a 1 + count (agents-on neighborhood) with [ active? ]
   ; See Info tab for a discussion of the following formula
-  report 1 - exp (- k * (c / a))
+  report 1 - exp (- k * floor (c / a))
 end
   
 to-report estimated-arrest-probability-when-quiet
@@ -193,7 +195,7 @@ end
 ; UPDATE OF THE GLOBALS
 to update-government-legitimacy
   set government-legitimacy government-legitimacy + alpha-arrest * (N-fair - beta-arrest * N-arb)
-  set government-legitimacy max list 0 (min list 1 government-legitimacy)
+  set government-legitimacy max list 0 (min list max-government-legitimacy government-legitimacy)
 end
 
 ; VISUALIZATION OF AGENTS AND COPS
@@ -241,8 +243,8 @@ end
   <widgets>
     <view x="286" wrappingAllowedX="true" y="59" frameRate="30.0" minPycor="0" height="404" showTickCounter="true" patchSize="10.0" fontSize="10" wrappingAllowedY="true" width="404" tickCounterLabel="ticks" maxPycor="39" updateMode="1" maxPxcor="39" minPxcor="0"></view>
     <note x="10" y="10" backgroundDark="0" fontSize="14" width="101" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Initial Settings</note>
-    <slider x="9" step="0.1" y="36" max="100.0" width="205" display="initial-cop-density" height="50" min="0.0" direction="Horizontal" default="20.7" variable="initial-cop-density" units="%"></slider>
-    <switch x="9" y="423" height="40" on="false" variable="movement?" width="248" display="movement?"></switch>
+    <slider x="9" step="0.1" y="36" max="100.0" width="205" display="initial-cop-density" height="50" min="0.0" direction="Horizontal" default="4.0" variable="initial-cop-density" units="%"></slider>
+    <switch x="9" y="423" height="40" on="true" variable="movement?" width="248" display="movement?"></switch>
     <chooser x="9" y="468" height="60" variable="visualization" current="0" width="248" display="visualization">
       <choice type="string" value="2D"></choice>
       <choice type="string" value="3D"></choice>
@@ -276,7 +278,7 @@ ask max-one-of agents [grievance]
     <button x="10" y="263" height="35" disableUntilTicks="false" forever="false" kind="Observer" width="70">setup</button>
     <slider x="10" step=".1" y="208" max="10.0" width="205" display="vision" height="50" min="0.0" direction="Horizontal" default="7.0" variable="vision" units="patches"></slider>
     <slider x="10" step="1.0" y="151" max="100.0" width="205" display="initial-agent-density" height="50" min="0.0" direction="Horizontal" default="70.0" variable="initial-agent-density" units="%"></slider>
-    <slider x="10" step="1" y="91" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="14.0" variable="violent-cop-density" units="%"></slider>
+    <slider x="10" step="1" y="91" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="50.0" variable="violent-cop-density" units="%"></slider>
     <monitor x="707" precision="17" y="49" height="60" fontSize="11" width="100">N-arb-total</monitor>
     <monitor x="707" precision="17" y="117" height="60" fontSize="11" width="100">N-fair-total</monitor>
     <plot x="349" autoPlotX="true" yMax="1.0" autoPlotY="true" y="603" xMin="0.0" height="170" legend="false" xMax="20.0" yMin="0.0" width="230" xAxis="time" display="government-legitimacy-change">
@@ -289,6 +291,7 @@ ask max-one-of agents [grievance]
     </plot>
     <monitor x="707" precision="2" y="186" height="60" fontSize="11" width="100" display="grievance">mean [grievance] of agents</monitor>
     <monitor x="370" precision="17" y="536" height="60" fontSize="11" width="100">mean [estimated-arrest-probability-when-quiet] of agents</monitor>
+    <monitor x="711" precision="17" y="268" height="60" fontSize="11" width="100">mean [grievance - risk-aversion * estimated-arrest-probability + estimated-arrest-probability-when-quiet] of agents</monitor>
   </widgets>
   <info><![CDATA[## WHAT IS IT?
 
