@@ -13,6 +13,7 @@ globals [
   N-fair ; number of fair arrests
   N-arb-total
   N-fair-total
+  decay-factor
 ]
 
 agents-own [
@@ -22,6 +23,7 @@ agents-own [
   jail-term           ; how many turns in jail remain? (if 0, the agent is not in jail)
   arrested-fairly?
   arrested-arb?
+  radical-factor
 ]
 
 cops-own [
@@ -43,7 +45,8 @@ to setup
   set N-arb-total 0
   set N-fair-total 0
   set alpha-arrest 0.005
-  set beta-arrest 2
+  set beta-arrest 3
+  set decay-factor 0.02
 
   ask patches [
     ; make background a slightly dark gray
@@ -81,6 +84,7 @@ to setup
     set jail-term 0
     set arrested-fairly? false
     set arrested-arb? false
+    set radical-factor 0
     display-agent
   ]
 
@@ -98,6 +102,8 @@ to go
     if breed = agents and jail-term = 0 [ determine-behavior ]
     ;  Rule C: Cops arrest a random active agent within their radius
     if breed = cops [ enforce ]
+    
+    if breed = agents [ update-radical-factor ]
   ]
   set N-arb count agents with [ arrested-arb? ]
   set N-fair count agents with [ arrested-fairly? ]
@@ -132,7 +138,14 @@ end
 ; AGENT BEHAVIOR
 
 to determine-behavior
-  set active? ((grievance - risk-aversion * estimated-arrest-probability + estimated-arrest-probability-when-quiet) > threshold)
+  set radical-factor (radical-factor - decay-factor)
+  set active? ((grievance - risk-aversion * estimated-arrest-probability + fear-of-law-enforcement) > threshold)
+end
+
+to update-radical-factor
+  let victims count (agents-on neighborhood) with [ arrested-arb? ]
+  let self-arrest (ifelse-value arrested-arb? [1] [0])
+  set radical-factor (min list 1 (max list 0 (radical-factor + 0.7 * self-arrest + 0.3 * victims)))
 end
 
 to-report grievance
@@ -146,14 +159,12 @@ to-report estimated-arrest-probability
   report 1 - exp (- k * floor (c / a))
 end
   
-to-report estimated-arrest-probability-when-quiet
-  let c count cops-on neighborhood
-  let q 1 + count (agents-on neighborhood) with [not active? and jail-term = 0]
+to-report fear-of-law-enforcement
   ifelse (N-arb-total + N-fair-total = 0) [
     report 0
   ] [
     let theta N-arb-total / (N-arb-total + N-fair-total)
-    report theta * (1 - exp (- k * (c / q)))
+    report theta * (1 + radical-factor)
   ]
 end
 
@@ -241,7 +252,7 @@ end
   <widgets>
     <view x="286" wrappingAllowedX="true" y="59" frameRate="30.0" minPycor="0" height="404" showTickCounter="true" patchSize="10.0" fontSize="10" wrappingAllowedY="true" width="404" tickCounterLabel="ticks" maxPycor="39" updateMode="1" maxPxcor="39" minPxcor="0"></view>
     <note x="10" y="10" backgroundDark="0" fontSize="14" width="101" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Initial Settings</note>
-    <slider x="9" step="0.1" y="36" max="100.0" width="205" display="initial-cop-density" height="50" min="0.0" direction="Horizontal" default="10.1" variable="initial-cop-density" units="%"></slider>
+    <slider x="9" step="0.1" y="36" max="100.0" width="205" display="initial-cop-density" height="50" min="0.0" direction="Horizontal" default="20.1" variable="initial-cop-density" units="%"></slider>
     <switch x="9" y="423" height="40" on="true" variable="movement?" width="248" display="movement?"></switch>
     <chooser x="9" y="468" height="60" variable="visualization" current="0" width="248" display="visualization">
       <choice type="string" value="2D"></choice>
@@ -266,7 +277,7 @@ end
     </plot>
     <monitor x="238" precision="3" y="539" height="60" fontSize="11" width="107" display="active (red)">count agents with [active?]</monitor>
     <monitor x="124" precision="1" y="537" height="60" fontSize="11" width="107" display="jailed (black)"><![CDATA[count agents with [jail-term > 0]]]></monitor>
-    <slider x="9" step="1.0" y="368" max="50.0" width="248" display="max-jail-term" height="50" min="0.0" direction="Horizontal" default="30.0" variable="max-jail-term" units="turns"></slider>
+    <slider x="9" step="1.0" y="368" max="50.0" width="248" display="max-jail-term" height="50" min="0.0" direction="Horizontal" default="10.0" variable="max-jail-term" units="turns"></slider>
     <button x="164" y="263" height="35" disableUntilTicks="true" forever="false" kind="Observer" width="94" display="watch one">set visualization "3D"
 ask max-one-of agents [grievance]
   [ set size 2 watch-me ]</button>
@@ -276,7 +287,7 @@ ask max-one-of agents [grievance]
     <button x="10" y="263" height="35" disableUntilTicks="false" forever="false" kind="Observer" width="70">setup</button>
     <slider x="10" step=".1" y="208" max="10.0" width="205" display="vision" height="50" min="0.0" direction="Horizontal" default="7.0" variable="vision" units="patches"></slider>
     <slider x="10" step="1.0" y="151" max="100.0" width="205" display="initial-agent-density" height="50" min="0.0" direction="Horizontal" default="70.0" variable="initial-agent-density" units="%"></slider>
-    <slider x="10" step="1" y="91" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="10.0" variable="violent-cop-density" units="%"></slider>
+    <slider x="10" step="1" y="91" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="0.0" variable="violent-cop-density" units="%"></slider>
     <monitor x="706" precision="17" y="49" height="60" fontSize="11" width="100">N-arb-total</monitor>
     <monitor x="706" precision="17" y="117" height="60" fontSize="11" width="100">N-fair-total</monitor>
     <plot x="349" autoPlotX="true" yMax="1.0" autoPlotY="true" y="603" xMin="0.0" height="170" legend="false" xMax="20.0" yMin="0.0" width="230" xAxis="time" display="government-legitimacy-change">
@@ -288,10 +299,11 @@ ask max-one-of agents [grievance]
       </pen>
     </plot>
     <monitor x="706" precision="2" y="186" height="60" fontSize="11" width="100" display="grievance">mean [grievance] of agents</monitor>
-    <monitor x="370" precision="17" y="536" height="60" fontSize="11" width="100">mean [estimated-arrest-probability-when-quiet] of agents</monitor>
-    <monitor x="706" precision="2" y="249" height="60" fontSize="11" width="100" display="Mean State">mean [grievance - risk-aversion * estimated-arrest-probability + estimated-arrest-probability-when-quiet] of agents</monitor>
-    <slider x="288" step="0.01" y="475" max="1" width="250" display="max-government-legitimacy" height="50" min="0" direction="Horizontal" default="0.76" variable="max-government-legitimacy"></slider>
+    <monitor x="370" precision="2" y="536" height="60" fontSize="11" width="100" display="Fear">mean [fear-of-law-enforcement] of agents</monitor>
+    <monitor x="706" precision="2" y="249" height="60" fontSize="11" width="100" display="Mean State">mean [grievance - risk-aversion * estimated-arrest-probability + fear-of-law-enforcement] of agents</monitor>
+    <slider x="288" step="0.01" y="475" max="1" width="250" display="max-government-legitimacy" height="50" min="0" direction="Horizontal" default="0.7" variable="max-government-legitimacy"></slider>
     <monitor x="481" precision="2" y="539" height="60" fontSize="11" width="100" display="Arb-to-Fair Ratio">N-arb-total / (N-fair-total + N-arb-total)</monitor>
+    <monitor x="704" precision="2" y="314" height="60" fontSize="11" width="100" display="radicalisaion">min [radical-factor] of agents</monitor>
   </widgets>
   <info><![CDATA[## WHAT IS IT?
 
