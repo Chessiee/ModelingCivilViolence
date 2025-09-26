@@ -138,7 +138,7 @@ end
 ; AGENT BEHAVIOR
 
 to determine-behavior
-  set active? ((grievance - risk-aversion * estimated-arrest-probability + distrust-in-law-enforcement) > threshold)
+  set active? ((grievance - risk-aversion * estimated-arrest-probability) > threshold)
 end
 
 to update-radical-factor
@@ -148,7 +148,7 @@ to update-radical-factor
 end
 
 to-report grievance
-  report perceived-hardship * (1 - government-legitimacy)
+  report perceived-hardship * (1 - government-legitimacy) * (1 + radical-factor)
 end
 
 to-report estimated-arrest-probability
@@ -156,15 +156,6 @@ to-report estimated-arrest-probability
   let a 1 + count (agents-on neighborhood) with [ active? ]
   ; See Info tab for a discussion of the following formula
   report 1 - exp (- k * floor (c / a))
-end
-  
-to-report distrust-in-law-enforcement
-  ifelse (N-arb-total + N-fair-total = 0) [
-    report 0
-  ] [
-    let theta N-arb-total / (N-arb-total + N-fair-total)
-    report theta * (1 + radical-factor)
-  ]
 end
 
 ; COP BEHAVIOR
@@ -220,8 +211,7 @@ to display-agent-2d  ; agent procedure
     [ set color black + 3 ]                
     [ ifelse active?
         [ set color red ]                 
-        [ let state (distrust-in-law-enforcement + grievance)
-      set color scale-color green state 1.5 -0.5 ] ] 
+        [ set color scale-color green grievance 1.5 -0.5 ] ] 
 end
 
 to display-agent-3d  ; agent procedure
@@ -285,9 +275,9 @@ ask max-one-of agents [grievance]
     <monitor x="9" precision="3" y="302" height="61" fontSize="11" width="121" display="# of agents">count agents</monitor>
     <button x="87" y="263" height="35" disableUntilTicks="true" forever="true" kind="Observer" width="70">go</button>
     <button x="10" y="263" height="35" disableUntilTicks="false" forever="false" kind="Observer" width="70">setup</button>
-    <slider x="10" step=".1" y="208" max="10.0" width="205" display="vision" height="50" min="0.0" direction="Horizontal" default="4.0" variable="vision" units="patches"></slider>
+    <slider x="10" step=".1" y="208" max="10.0" width="205" display="vision" height="50" min="0.0" direction="Horizontal" default="7.0" variable="vision" units="patches"></slider>
     <slider x="10" step="1.0" y="151" max="100.0" width="205" display="initial-agent-density" height="50" min="0.0" direction="Horizontal" default="70.0" variable="initial-agent-density" units="%"></slider>
-    <slider x="10" step="1" y="91" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="10.0" variable="violent-cop-density" units="%"></slider>
+    <slider x="10" step="1" y="91" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="0.0" variable="violent-cop-density" units="%"></slider>
     <monitor x="706" precision="17" y="49" height="60" fontSize="11" width="100">N-arb-total</monitor>
     <monitor x="706" precision="17" y="117" height="60" fontSize="11" width="100">N-fair-total</monitor>
     <plot x="349" autoPlotX="true" yMax="1.0" autoPlotY="true" y="603" xMin="0.0" height="170" legend="false" xMax="20.0" yMin="0.0" width="230" xAxis="time" display="government-legitimacy-change">
@@ -299,11 +289,10 @@ ask max-one-of agents [grievance]
       </pen>
     </plot>
     <monitor x="706" precision="2" y="186" height="60" fontSize="11" width="100" display="grievance">mean [grievance] of agents</monitor>
-    <monitor x="370" precision="2" y="536" height="60" fontSize="11" width="100" display="Fear">mean [distrust-in-law-enforcement] of agents</monitor>
-    <monitor x="706" precision="2" y="249" height="60" fontSize="11" width="100" display="Mean State">mean [grievance - risk-aversion * estimated-arrest-probability + distrust-in-law-enforcement] of agents</monitor>
-    <slider x="288" step="0.01" y="475" max="1" width="250" display="max-government-legitimacy" height="50" min="0" direction="Horizontal" default="0.72" variable="max-government-legitimacy"></slider>
-    <monitor x="481" precision="2" y="539" height="60" fontSize="11" width="100" display="Arb-to-Fair Ratio">N-arb-total / (N-fair-total + N-arb-total)</monitor>
+    <monitor x="706" precision="2" y="249" height="60" fontSize="11" width="100" display="Mean State">mean [grievance - risk-aversion * estimated-arrest-probability] of agents</monitor>
+    <slider x="288" step="0.01" y="475" max="1" width="250" display="max-government-legitimacy" height="50" min="0" direction="Horizontal" default="0.47" variable="max-government-legitimacy"></slider>
     <monitor x="704" precision="2" y="314" height="60" fontSize="11" width="100" display="radicalisaion">mean [radical-factor] of agents</monitor>
+    <monitor x="420" precision="2" y="537" height="60" fontSize="11" width="100" display="Arb-to-Fair Ratio">N-arb-total / (N-fair-total + N-arb-total)</monitor>
   </widgets>
   <info><![CDATA[## WHAT IS IT?
 
