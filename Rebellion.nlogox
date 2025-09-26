@@ -140,10 +140,10 @@ to determine-behavior
   set active? ((grievance - risk-aversion * estimated-arrest-probability + fear-of-law-enforcement) > threshold)
 end
 
-to update-radical-factor
+to-report update-radical-factor
   let victims count (agents-on neighborhood) with [ arrested-arb? ]
   let self-arrest (ifelse-value arrested-arb? [1] [0])
-  set radical-factor (min list 1 (max list 0 (radical-factor + 0.7 * self-arrest + 0.3 * victims - decay-factor)))
+  report (min list 1 (max list 0 (radical-factor + 0.7 * self-arrest + 0.3 * victims - decay-factor)))
 end
 
 to-report grievance
