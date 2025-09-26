@@ -102,8 +102,6 @@ to go
     if breed = agents and jail-term = 0 [ determine-behavior ]
     ;  Rule C: Cops arrest a random active agent within their radius
     if breed = cops [ enforce ]
-    
-    if breed = agents [ update-radical-factor ]
   ]
   set N-arb count agents with [ arrested-arb? ]
   set N-fair count agents with [ arrested-fairly? ]
@@ -138,14 +136,14 @@ end
 ; AGENT BEHAVIOR
 
 to determine-behavior
-  set radical-factor (radical-factor - decay-factor)
+  set radical-factor update-radical-factor
   set active? ((grievance - risk-aversion * estimated-arrest-probability + fear-of-law-enforcement) > threshold)
 end
 
 to update-radical-factor
   let victims count (agents-on neighborhood) with [ arrested-arb? ]
   let self-arrest (ifelse-value arrested-arb? [1] [0])
-  set radical-factor (min list 1 (max list 0 (radical-factor + 0.7 * self-arrest + 0.3 * victims)))
+  set radical-factor (min list 1 (max list 0 (radical-factor + 0.7 * self-arrest + 0.3 * victims - decay-factor)))
 end
 
 to-report grievance
