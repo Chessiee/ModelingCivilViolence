@@ -309,8 +309,8 @@ ask max-one-of agents [grievance]
     <monitor x="1090" precision="17" y="287" height="60" fontSize="11" width="100">N-fair-total</monitor>
     <monitor x="1090" precision="2" y="474" height="60" fontSize="11" width="100" display="Mean State">mean [grievance - risk-aversion * estimated-arrest-probability] of agents</monitor>
     <monitor x="1090" precision="2" y="538" height="60" fontSize="11" width="100" display="Mean Trauma Factor">mean [trauma-factor] of agents</monitor>
-    <switch x="316" y="536" height="40" on="true" variable="trauma?" width="77" display="trauma?"></switch>
-    <switch x="411" y="534" height="40" on="false" variable="legitimacy-change?" width="138" display="legitimacy-change?"></switch>
+    <switch x="316" y="536" height="40" on="false" variable="trauma?" width="77" display="trauma?"></switch>
+    <switch x="411" y="534" height="40" on="true" variable="legitimacy-change?" width="138" display="legitimacy-change?"></switch>
   </widgets>
   <info><![CDATA[## WHAT IS IT?
 
