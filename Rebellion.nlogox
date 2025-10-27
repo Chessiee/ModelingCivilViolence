@@ -248,7 +248,7 @@ end
   <widgets>
     <view x="288" wrappingAllowedX="true" y="15" frameRate="30.0" minPycor="0" height="448" showTickCounter="true" patchSize="11.1" fontSize="10" wrappingAllowedY="true" width="448" tickCounterLabel="ticks" maxPycor="39" updateMode="1" maxPxcor="39" minPxcor="0"></view>
     <slider x="24" step="0.1" y="35" max="100.0" width="205" display="initial-cop-density" height="50" min="0.0" direction="Horizontal" default="10.0" variable="initial-cop-density" units="%"></slider>
-    <slider x="24" step=".1" y="207" max="10.0" width="205" display="vision" height="50" min="0.0" direction="Horizontal" default="7.0" variable="vision" units="patches"></slider>
+    <slider x="24" step=".1" y="207" max="10.0" width="205" display="vision" height="50" min="0.0" direction="Horizontal" default="5.0" variable="vision" units="patches"></slider>
     <slider x="24" step="1.0" y="150" max="100.0" width="205" display="initial-agent-density" height="50" min="0.0" direction="Horizontal" default="70.0" variable="initial-agent-density" units="%"></slider>
     <slider x="24" step="1" y="90" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="20.0" variable="violent-cop-density" units="%"></slider>
     <slider x="24" step="0.01" y="263" max="1" width="208" display="max-government-legitimacy" height="50" min="0" direction="Horizontal" default="0.7" variable="max-government-legitimacy"></slider>
