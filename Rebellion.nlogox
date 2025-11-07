@@ -1,19 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <model version="NetLogo 7.0.0" snapToGrid="false">
-  <code><![CDATA[breed [ agents an-agent ]
+  <code><![CDATA[; Built upon the NetLogo model of Uri Wilensky (2004).
+
+breed [ agents an-agent ]
 breed [ cops cop ]
 
 globals [
-  k                   ; factor for determining arrest probability
-  threshold           ; by how much must G > N to make someone rebel?
+  k                     ; factor for determining arrest probability
+  threshold             ; by how much must G > N to make someone rebel?
   government-legitimacy ; in our extension, it will change overtime based on the cop behavior
-  alpha-arrest
-  beta-arrest
-  N-arb ; number of arbitrary arrests
-  N-fair ; number of fair arrests
-  N-arb-total
-  N-fair-total
-  decay-factor
+  alpha-arrest          ; coefficient for legitimacy sensitivity towards arrests
+  beta-arrest           ; assymetry coefficient 
+  N-arb                 ; number of arbitrary arrests
+  N-fair                ; number of fair arrests
+  N-arb-total           ; total number of arbitarry arrests
+  N-fair-total          ; total number of fair arrests
+  decay-factor          ; "healing" factor for trauma
 ]
 
 agents-own [
@@ -21,9 +23,9 @@ agents-own [
   perceived-hardship  ; H, also ranging from 0-1 (inclusive)
   active?             ; if true, then the agent is actively rebelling
   jail-term           ; how many turns in jail remain? (if 0, the agent is not in jail)
-  arrested-fairly?
-  arrested-arb?
-  trauma-factor
+  arrested-fairly?    ; boolean if an agent was arrested fairly
+  arrested-arb?       ; boolean if the agent was arrested unfairly
+  trauma-factor       ; accumulated trauma from police brutality 
 ]
 
 cops-own [
@@ -55,6 +57,7 @@ to setup
     set neighborhood patches in-radius vision
   ]
 
+  ; to make sure that the densities of cops and agents add up to 100
   if initial-cop-density + initial-agent-density > 100 [
     user-message (word
       "The sum of INITIAL-COP-DENSITY and INITIAL-AGENT-DENSITY "
@@ -88,21 +91,23 @@ to setup
     display-agent
   ]
 
-  ; start clock and plot initial state of system
+  ; start simulation and plot initial state of system
   reset-ticks
 end
 
 to go
-  set N-arb 0
+  ; resetting the counters as these represent the number of fair and arbitrary arrests per tick
+  set N-arb 0 
   set N-fair 0
   ask turtles [
     ; Rule M: Move to a random site within your vision
     if (breed = agents and jail-term = 0) or breed = cops [ move ]
     ;   Rule A: Determine if each agent should be active or quiet
     if breed = agents and jail-term = 0 [ determine-behavior ]
-    ;  Rule C: Cops arrest a random active agent within their radius
+    ;  Rule C: Cops arrest a random active agent within their radius or a quiet civilian if they are violent
     if breed = cops [ enforce ]
   ]
+  ; update trauma for quiet agents and those who were just arrested
   ask agents with [ (not active? and jail-term = 0) or arrested-arb? or arrested-fairly? ] 
   [ update-trauma-factor ]
   set N-arb count agents with [ arrested-arb? ]
@@ -112,7 +117,7 @@ to go
   ; Jailed agents get their term reduced at the end of each clock tick
   ask agents [ if jail-term > 0 [ set jail-term jail-term - 1 ]]
   ask agents [set arrested-arb? false set arrested-fairly? false]
-  
+  ; update governemnt legitimacy
   update-government-legitimacy
   ; update agent display
   ask agents [ display-agent ]
@@ -141,12 +146,14 @@ to determine-behavior
   set active? ((grievance - risk-aversion * estimated-arrest-probability) > threshold)
 end
 
+; updating trauma factor based on teh specified formula
 to update-trauma-factor
   let victims count (agents-on neighborhood) with [ arrested-arb? ]
   let self-arrest (ifelse-value arrested-arb? [1] [0])
   set trauma-factor (min list 1 (max list 0 (trauma-factor + 0.7 * self-arrest + 0.3 * victims - decay-factor)))
 end
 
+; updating grievance, include trauma fatcor of the toggle is on
 to-report grievance
   ifelse trauma? [
     report perceived-hardship * (1 - government-legitimacy) * (1 + trauma-factor)
@@ -155,10 +162,10 @@ to-report grievance
   ]
 end
 
+; arresy probability estimation 
 to-report estimated-arrest-probability
   let c count cops-on neighborhood
   let a 1 + count (agents-on neighborhood) with [ active? ]
-  ; See Info tab for a discussion of the following formula
   report 1 - exp (- k * floor (c / a))
 end
 
@@ -168,7 +175,7 @@ to enforce
   let suspects (agents-on neighborhood) with [ active? ]
   
   ifelse any? suspects [
-    ;; fair arrest (active civilian)
+    ; fair arrest (active civilian)
     let suspect one-of suspects
     move-to suspect
     ask suspect [
@@ -177,7 +184,7 @@ to enforce
       set jail-term random max-jail-term
     ]
   ] [
-    ;; no active suspects → check for arbitrary arrest
+    ; no active suspects => check for arbitrary arrest if violent
     if violent? [
       if random-float 1 < prob-arrest-quiet [
         let quiets (agents-on neighborhood) with [ not active? and jail-term = 0]
@@ -195,7 +202,7 @@ to enforce
 end
 
 
-; UPDATE OF THE GLOBALS
+; updating legitimacy if the toggle is on
 to update-government-legitimacy
   if legitimacy-change? [
     set government-legitimacy government-legitimacy + alpha-arrest * (N-fair - beta-arrest * N-arb)
@@ -232,7 +239,7 @@ to display-cop
   ifelse visualization = "2D"
   [
     set shape "triangle"
-    if violent? [ set color orange ]  ;; override cyan if cop is violent
+    if violent? [ set color orange ]  ; override cyan if cop is violent
     if not violent? [ set color cyan ]
   ]
   [
@@ -240,17 +247,13 @@ to display-cop
     if violent? [ set color orange ]
     if not violent? [ set color cyan ]
   ]
-end
-
-
-; Copyright 2004 Uri Wilensky.
-; See Info tab for full copyright and license.]]></code>
+end]]></code>
   <widgets>
     <view x="288" wrappingAllowedX="true" y="15" frameRate="30.0" minPycor="0" height="448" showTickCounter="true" patchSize="11.1" fontSize="10" wrappingAllowedY="true" width="448" tickCounterLabel="ticks" maxPycor="39" updateMode="1" maxPxcor="39" minPxcor="0"></view>
     <slider x="24" step="0.1" y="35" max="100.0" width="205" display="initial-cop-density" height="50" min="0.0" direction="Horizontal" default="20.0" variable="initial-cop-density" units="%"></slider>
     <slider x="24" step=".1" y="207" max="10.0" width="205" display="vision" height="50" min="0.0" direction="Horizontal" default="5.0" variable="vision" units="patches"></slider>
     <slider x="24" step="1.0" y="150" max="100.0" width="205" display="initial-agent-density" height="50" min="0.0" direction="Horizontal" default="70.0" variable="initial-agent-density" units="%"></slider>
-    <slider x="24" step="1" y="90" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="20.0" variable="violent-cop-density" units="%"></slider>
+    <slider x="24" step="1" y="90" max="100" width="206" display="violent-cop-density" height="50" min="0" direction="Horizontal" default="32.0" variable="violent-cop-density" units="%"></slider>
     <slider x="24" step="0.01" y="263" max="1" width="208" display="max-government-legitimacy" height="50" min="0" direction="Horizontal" default="0.7" variable="max-government-legitimacy"></slider>
     <note x="22" y="9" backgroundDark="0" fontSize="14" width="101" markdown="false" height="20" textColorDark="-1" textColorLight="-16777216" backgroundLight="0">Initial Settings</note>
     <button x="545" y="473" height="35" disableUntilTicks="true" forever="false" kind="Observer" width="94" display="watch one">set visualization "3D"
@@ -314,102 +317,79 @@ ask max-one-of agents [grievance]
   </widgets>
   <info><![CDATA[## WHAT IS IT?
 
-This project models the rebellion of a subjugated population against a central authority. It is is an adaptation of Joshua Epstein's model of civil violence (2002).
-
-The population wanders around randomly. If their level of grievance against the central authority is high enough, and their perception of the risks involved is low enough, they openly rebel. A separate population of police officers ("cops"), acting on behalf of the central authority, seeks to suppress the rebellion. The cops wander around randomly and arrest people who are actively rebelling.
+This project models the rebellion of a civilian population against a central authority, with a focus on police brutality. It extends Joshua Epstein's civil violence model (2002), built upon Uri Wilensky's NetLogo implementation (2004). The population wanders randomly. If their grievance is high enough and perceived risk is low enough, they rebel. Police officers ("cops") suppress rebellion by arresting agents. Our extension introduces three key innovations: (1) violent cops who can arbitrarily arrest quiet civilians, (2) dynamic government legitimacy that responds to police behavior, and (3) a trauma effect where civilians remember brutality.
 
 ## HOW IT WORKS
 
-Each "agent," or member of the general population, has an individual level of grievance toward the central authority. GRIEVANCE is based on the agent's PERCEIVED-HARDSHIP, which is assigned randomly at startup, and on GOVERNMENT-LEGITIMACY, which is global across agents and specified by a slider in the interface.
+Civilian Agents:
+Grievance is calculated as: G = H × (1 - L) × (1 + U)
 
-Each agent also calculates an individual risk of rebelling at the beginning of each turn.  This ESTIMATED-ARREST-PROBABILITY, is based on the number of cops and already rebelling agents within VISION patches, namely 1 - exp (- k * (C/A)<sub>v</sub>) --- where (C/A)<sub>v</sub> is the ratio of cops to active agents, and k is a constant set in "startup" to ensure a reasonable value when there is only one cop and one agent within a particular field of vision.  In our implementation, we changed one aspect of Epstein's description.  After dividing by C by A, we take the "floor" of the result (that is, round downwards to an integer).  Without this change, the model does not exhibit punctuated equilibrium.  The effect of the change is that if there are more rebels than cops in the neighborhood, the probability of arrest is zero, otherwise it is very nearly 1.0.  In other words, the rule could be written more simply as:
+H = Perceived hardship 
+L = Government legitimacy 
+U = Trauma from police brutality
 
-      ifelse a > c [ report 0 ] [ report 0.99 ]
 
-An agent's NET-RISK is the product of the calculated ESTIMATED-ARREST-PROBABILITY and RISK-AVERSION randomly set for each agent at birth.
+Each agent estimates their arrest probability based on nearby cops and active agents:
+P = 1 - exp(-k × C/A), 
 
-The model cycles through three different rules, known as M (move), A (agents) and C (cops):
+where C/A is the cop-to-active ratio within vision.
 
-- Movement rule M says that each cop and non-imprisoned agent moves to a random unoccupied site within VISION patches.
+Activation Rule: If G - (Risk Aversion × P) > T, the agent rebels (turns red).
+Otherwise, they stay quiet (green shades show grievance level).
 
-- Agent rule A says that if an agent's GRIEVANCE exceeds the NET-RISK by a small threshold (set by default to 0.1 in "setup"), the agent decides to rebel.  This is noted by changing the agent's border color from blue to red.  (It is also possible for the agent to move from rebellion to quiet, in which case the border color changes from red to blue.)
+Cop Agents:
+Two types of cops:
 
-- Cop rule C says that each cop should look for active agents within VISION patches.  If at least one exists, the cop randomly selects one active agent and sends it to jail for a number of turns between 0 and MAX-JAIL-TERM (settable by a slider in the interface) and moves to the patch of the jailed agent. The patch of the jailed agent is considered unoccupied.
+Ordinary cops (cyan triangles): Only arrest active agents
+Violent cops (orange triangles): Can arbitrarily arrest quiet civilians with individual probabilities (0.1-0.7)
+
+Cop Rule: Cops arrest active agents first (fair arrest). If no active agents are nearby and the cop is violent, they may arbitrarily arrest a quiet civilian.
+
+Dynamic Legitimacy:
+L(t+1) = L(t) + α × (N_fair - β × N_arbitrary)
+Fair arrests slightly increase legitimacy (α = 0.005);
+arbitrary arrests decrease it more strongly (β = 2). Bounded between 0 and initial value.
+
+Trauma Effect:
+U(t+1) = U(t) + ω × S + γ × N_witnessed - μ
+Where S = being arbitrarily arrested (ω = 0.7), N_witnessed = arbitrary arrests witnessed (γ = 0.3), and μ = 0.02 is decay. Bounded 0-1.
+
+Movement and Jail:
+Agents move randomly within vision (if enabled). Arrested agents are jailed for 0 to MAX-JAIL-TERM steps, then released with same grievance and trauma.
 
 ## HOW TO USE IT
+Sliders:
 
-Use the sliders to pick the initial settings for the model. INITIAL-COP-DENSITY and POPULATION-DENSITY respectively determine the density of cops and agents in the world. VISION determines the number of patches in each direction that agents and cops can see.
+INITIAL-COP-DENSITY: Density of cops
+VIOLENT-COP-DENSITY: Percentage of violent cops (0-50%)
+INITIAL-AGENT-DENSITY: Density of civilians
+VISION: Perception radius for all agents
+MAX-GOVERNMENT-LEGITIMACY: Starting legitimacy (becomes dynamic)
+MAX-JAIL-TERM: Maximum jail sentence
 
-Click SETUP to initialize the population. Click GO to begin the simulation.
+Controls:
 
-As the simulation runs, you can adjust GOVERNMENT-LEGITIMACY and MAX-JAIL-TERM. You can control the mobility of the agents through the MOVEMENT? toggle.
+SETUP: Initialize population
+GO: Run simulation
+MOVEMENT?: Toggle agent movement
+TRAUMA?: Enable trauma effect
+LEGITIMACY-CHANGE?: Enable dynamic legitimacy
+WATCH ONE: Follow agent with highest grievance
 
-The visualization chooser allows you to choose between 2D visualization where the turtles are circles and triangles or 3D visualization where the agents have people shapes.
+Visualization: Choose 2D (circles/triangles) or 3D (people shapes).
 
-The color of the agents shows their private level of grievance. The darker the green, the higher the GRIEVANCE.  This color does not change throughout the run of a model (unless you change the GOVERNMENT-LEGITIMACY slider).
 
-## THINGS TO NOTICE
+## REFERENCES AND CREDITS
+This model extends Joshua M. Epstein's civil violence model: "Modeling civil violence: An agent-based computational approach", Proceedings of the National Academy of Sciences, Vol. 99, Suppl. 3, May 14, 2002. Available at https://www.pnas.org/doi/10.1073/pnas.092080199
 
-Watch how agents exhibit deceptive behavior by changing their public state when cops are present, despite a constant level of private grievance. To see this press the WATCH ONE button, slow down the model, switch to the 3D view and zoom in on the selected agent. It may be easier to see this phenomenon if you change the sliders, especially reducing the VISION.
+The implementation builds upon Uri Wilensky's NetLogo Rebellion model (2004): http://ccl.northwestern.edu/netlogo/models/Rebellion
 
-Watch the plot of active agents. Notice that it exhibits "punctuated equilibrium" --- periods of quiescence followed by periods of rebellion.
+Extension developed by:
+Anna Gumenyuk, Joni Baarda, Jiale Li, and Andrei Foitos
+University of Groningen, 2025
 
-## THINGS TO TRY
-
-Epstein claims that movement of the agents causes more frequent episodes of rebellion. Run the model with the MOVEMENT? switch on and off to see if you get this result.
-
-Compare the effects of a gradual erosion in the perceived legitimacy of the central authority to a smaller, but immediate drop. For example, set GOVERNMENT-LEGITIMACY to 0.9 and reduce it to zero over 250 runs, plotting the legitimacy and the number of active agents. Now do another run, beginning with legitimacy at 0.9. This time, leave the legitimacy constant for 80 runs and then drop it to 0.7 at once. Observe the results. Try to explain them. Think of historical examples of this phenomena. What are the implications of this result for the strategy of revolutionary leaders?
-
-Epstein quotes de Tocqueville: "It is not always when things are going from bad to worse that revolutions break out. On the contrary, it oftener happens that when a people that has put up with oppressive rule over a long period without protest suddenly finds the government relaxing its pressure, it takes up arms against it." Test de Tocqueville's observation in the model by comparing the effects of a gradual erosion in perceived legitimacy with a gradual erosion in the number of cops. Observe the results. Explain the difference.
-
-## EXTENDING THE MODEL
-
-Write a reporter procedure that reports `true` when there is a rebellion, `false` during quiescent periods.
-
-Measure the intervals between episodes of rebellion. What is the distribution of these waiting times?
-
-Try changing some of Epstein's assumptions as below. Do these changes create qualitative differences in results?
-
-Change GOVERNMENT-LEGITIMACY such that it increases proportionally with the number of nearby jailed agents.
-
-Change the model such that each agent's `grievance` is influenced by the value of other nearby agents.
-
-## NETLOGO FEATURES
-
-Note the use of a patch variable to store precomputed neighborhood agentsets.  This improves performance because the neighborhoods don't have to be calculated over and over again.
-
-## CREDITS AND REFERENCES
-
-This model, and the preceding explanation, is adapted from Joshua M. Epstein, "Modeling civil violence: An agent-based computational approach", Proceedings of the National Academy of Sciences, Vol. 99, Suppl. 3, May 14, 2002, and is available at
-https://www.ncbi.nlm.nih.gov/pmc/articles/PMC128592/.
-
-## HOW TO CITE
-
-If you mention this model or the NetLogo software in a publication, we ask that you include the citations below.
-
-For the model itself:
-
-* Wilensky, U. (2004).  NetLogo Rebellion model.  http://ccl.northwestern.edu/netlogo/models/Rebellion.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-Please cite the NetLogo software as:
-
-* Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-## COPYRIGHT AND LICENSE
-
-Copyright 2004 Uri Wilensky.
-
-![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
-
-This model is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
-
-NetLogo itself is free software for non-commercial use under the terms of the GNU General Public License ([see full license information here](https://ccl.northwestern.edu/netlogo/docs/copyright.html)).
-
-To inquire about commercial licenses for either NetLogo or specific models from the models library, please contact netlogo-commercial-admin@ccl.northwestern.edu.
-
-This model was created as part of the projects: PARTICIPATORY SIMULATIONS: NETWORK-BASED DESIGN FOR SYSTEMS LEARNING IN CLASSROOMS and/or INTEGRATED SIMULATION AND MODELING ENVIRONMENT. The project gratefully acknowledges the support of the National Science Foundation (REPP & ROLE programs) -- grant numbers REC #9814682 and REC-0126227.
-
-<!-- 2004 -->]]></info>
+Original Rebellion model: Copyright 2004 Uri Wilensky.
+Extension: Copyright 2025 Anna Gumenyuk, Joni Baarda, Jiale Li, and Andrei Foitos.]]></info>
   <turtleShapes>
     <shape name="default" rotatable="true" editableColorIndex="0">
       <polygon color="-1920102913" filled="true" marked="true">
