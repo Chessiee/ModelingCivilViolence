@@ -82,4 +82,5 @@ Anna Gumenyuk, Joni Baarda, Jiale Li, and Andrei Foitos
 University of Groningen, 2025
 
 Original Rebellion model: Copyright 2004 Uri Wilensky.
+
 Extension: Copyright 2025 Anna Gumenyuk, Joni Baarda, Jiale Li, and Andrei Foitos.
