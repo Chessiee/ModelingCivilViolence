@@ -361,7 +361,7 @@ Agents move randomly within vision (if enabled). Arrested agents are jailed for 
 Sliders:
 
 INITIAL-COP-DENSITY: Density of cops
-VIOLENT-COP-DENSITY: Percentage of violent cops (0-50%)
+VIOLENT-COP-DENSITY: Percentage of violent cops
 INITIAL-AGENT-DENSITY: Density of civilians
 VISION: Perception radius for all agents
 MAX-GOVERNMENT-LEGITIMACY: Starting legitimacy (becomes dynamic)
