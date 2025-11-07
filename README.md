@@ -44,19 +44,29 @@ Agents move randomly within vision (if enabled). Arrested agents are jailed for 
 Sliders:
 
 INITIAL-COP-DENSITY: Density of cops
-VIOLENT-COP-DENSITY: Percentage of violent cops (0-50%)
+
+VIOLENT-COP-DENSITY: Percentage of violent cops 
+
 INITIAL-AGENT-DENSITY: Density of civilians
+
 VISION: Perception radius for all agents
+
 MAX-GOVERNMENT-LEGITIMACY: Starting legitimacy (becomes dynamic)
+
 MAX-JAIL-TERM: Maximum jail sentence
 
 Controls:
 
 SETUP: Initialize population
+
 GO: Run simulation
+
 MOVEMENT?: Toggle agent movement
+
 TRAUMA?: Enable trauma effect
+
 LEGITIMACY-CHANGE?: Enable dynamic legitimacy
+
 WATCH ONE: Follow agent with highest grievance
 
 Visualization: Choose 2D (circles/triangles) or 3D (people shapes).
